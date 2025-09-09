@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestor Documental - Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      background-color: #0c2b4a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar .logo {
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #1b3f6c;
+    }
+
+    .sidebar .logo img {
+      width: 60px;
+    }
+
+    .sidebar nav {
+      flex-grow: 1;
+    }
+
+    .sidebar nav a {
+      display: block;
+      padding: 1rem 1.5rem;
+      color: white;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .sidebar nav a:hover {
+      background-color: #1b3f6c;
+    }
+
+    .main {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background-color: #ffffff;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #ccc;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #0c2b4a;
+    }
+
+    .content {
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+
+    footer {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #666;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="../assets/logo.png" alt="Gestor Documental" />
+    </div>
+    <nav>
+      <a href="dashboard.html">🏠 Inicio</a>
+      <a href="subida_documentos.html">📤 Subir</a>
+      <a href="historial_documentos.html">🧾 Historial</a>
+      <a href="#" onclick="logout()">🔓 Cerrar sesión</a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main">
+    <div class="header">
+      Panel Principal - Gestor Documental
+      <span id="userInfo" style="float: right; font-size: 0.9rem; font-weight: normal;"></span>
+    </div>
+    <div class="content">
+      <div class="card">
+        <h2>Bienvenido al Gestor Documental</h2>
+        <p>Desde este panel puedes acceder a todas las funciones como visualización, carga y gestión de tus documentos digitales.</p>
+      </div>
+    </div>
+    <footer>
+      © 2025 Gestor Documental - Todos los derechos reservados.
+    </footer>
+  </div>
+
+  <script src="../js/ui-manager.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Verificar autenticación
+      if (!AuthManager.requireAuth()) {
+        return;
+      }
+
+      // Mostrar información del usuario
+      const userInfo = document.getElementById('userInfo');
+      const currentUser = AuthManager.getCurrentUser();
+      if (currentUser) {
+        userInfo.textContent = `Usuario: ${currentUser}`;
+      }
+    });
+  </script>
+
+</body>
+</html>

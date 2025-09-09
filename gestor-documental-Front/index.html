@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Gestor Documental</title>
+  <link rel="stylesheet" href="adminlte/css/adminlte.min.css">
+  <style>body{background:#f4f6f9}</style>
+</head>
+<body class="hold-transition login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="assets/logo.png" style="max-width:150px">
+      <b>Gestor Documental</b>
+    </div>
+    <div class="card">
+      <div class="card-body login-card-body">
+        <p class="login-box-msg">Ingresa tus credenciales</p>
+        <form id="loginForm">
+          <div class="input-group mb-3">
+            <input type="text" id="username" name="username" class="form-control" placeholder="Usuario" required>
+            <div class="input-group-append"><span class="fas fa-user input-group-text"></span></div>
+          </div>
+          <div class="input-group mb-3">
+            <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+            <div class="input-group-append"><span class="fas fa-lock input-group-text"></span></div>
+          </div>
+          <button type="submit" id="loginBtn" class="btn btn-primary btn-block">Entrar</button>
+        </form>
+        <div id="messageContainer"></div>
+      </div>
+    </div>
+  </div>
+  <script src="adminlte/plugins/jquery/jquery.min.js"></script>
+  <script src="adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="adminlte/js/adminlte.min.js"></script>
+  <script src="js/ui-manager.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const loginForm = document.getElementById('loginForm');
+      const loginBtn = document.getElementById('loginBtn');
+      const messageContainer = document.getElementById('messageContainer');
+
+      loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (!username || !password) {
+          UIManager.showError('Por favor, completa todos los campos', 'messageContainer');
+          return;
+        }
+
+        // Mostrar loading
+        UIManager.showLoading('Iniciando sesión...', 'messageContainer');
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Entrando...';
+
+        try {
+          const result = await AuthManager.login(username, password);
+          
+          if (result.success) {
+            UIManager.showSuccess('¡Login exitoso! Redirigiendo...', 'messageContainer');
+            setTimeout(() => {
+              window.location.href = 'adminlte/dashboard.html';
+            }, 1000);
+          } else {
+            UIManager.showError(result.error || 'Error en el login', 'messageContainer');
+          }
+        } catch (error) {
+          UIManager.showError('Error de conexión. Verifica que el servidor esté ejecutándose.', 'messageContainer');
+        } finally {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Entrar';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

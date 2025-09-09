@@ -1,0 +1,23 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package hn.cus.api_repositorio.repository;
+
+import hn.cus.api_repositorio.entity.AuditLog;
+import hn.cus.api_repositorio.entity.DocumentoVersion;
+import hn.cus.api_repositorio.entity.DocumentoWorkflow;
+import hn.cus.api_repositorio.entity.Metadata;
+import hn.cus.api_repositorio.entity.Workflow;
+import hn.cus.api_repositorio.entity.WorkflowEtapa;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+/**
+ *
+ * @author EG490082
+ */
+public interface DocumentoVersionRepository extends JpaRepository<DocumentoVersion, Long> {
+    List<DocumentoVersion> findByDocumento_Id(Long documentoId);
+}
+

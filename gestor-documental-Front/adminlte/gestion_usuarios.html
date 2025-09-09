@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Gestor Documental</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .user-card {
+            border-left: 4px solid #28a745;
+            margin-bottom: 15px;
+        }
+        .user-card.inactive {
+            border-left-color: #dc3545;
+            opacity: 0.7;
+        }
+        .role-badge {
+            margin-right: 5px;
+        }
+        .user-actions {
+            white-space: nowrap;
+        }
+        .modal-header {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini">
+    <div class="wrapper">
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Sidebar -->
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <a href="dashboard.html" class="brand-link">
+                <i class="fas fa-file-alt brand-image"></i>
+                <span class="brand-text font-weight-light">Gestor Documental</span>
+            </a>
+
+            <div class="sidebar">
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                        <li class="nav-item">
+                            <a href="dashboard.html" class="nav-link">
+                                <i class="nav-icon fas fa-home"></i>
+                                <p>Inicio</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="subida_documentos.html" class="nav-link">
+                                <i class="nav-icon fas fa-upload"></i>
+                                <p>Subir</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="historial_documentos.html" class="nav-link">
+                                <i class="nav-icon fas fa-history"></i>
+                                <p>Historial</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="comentarios_documentos.html" class="nav-link">
+                                <i class="nav-icon fas fa-comments"></i>
+                                <p>Comentarios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="gestion_usuarios.html" class="nav-link active">
+                                <i class="nav-icon fas fa-users"></i>
+                                <p>Usuarios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="gestion_roles.html" class="nav-link">
+                                <i class="nav-icon fas fa-user-shield"></i>
+                                <p>Roles</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="logout()">
+                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                                <p>Cerrar sesión</p>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">Gestión de Usuarios</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <button class="btn btn-primary float-right" data-toggle="modal" data-target="#userModal" onclick="openUserModal()">
+                                <i class="fas fa-plus"></i> Nuevo Usuario
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Filtros -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Filtros</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="searchUsername">Buscar por nombre de usuario:</label>
+                                                <input type="text" class="form-control" id="searchUsername" placeholder="Nombre de usuario...">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="filterRole">Filtrar por rol:</label>
+                                                <select class="form-control" id="filterRole">
+                                                    <option value="">Todos los roles</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="filterStatus">Estado:</label>
+                                                <select class="form-control" id="filterStatus">
+                                                    <option value="">Todos</option>
+                                                    <option value="true">Activo</option>
+                                                    <option value="false">Inactivo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <button class="btn btn-primary" onclick="applyFilters()">
+                                                <i class="fas fa-search"></i> Buscar
+                                            </button>
+                                            <button class="btn btn-secondary" onclick="clearFilters()">
+                                                <i class="fas fa-times"></i> Limpiar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de usuarios -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Usuarios</h3>
+                                    <div class="card-tools">
+                                        <button class="btn btn-primary btn-sm" onclick="loadUsers()">
+                                            <i class="fas fa-sync"></i> Actualizar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Usuario</th>
+                                                    <th>Email</th>
+                                                    <th>Roles</th>
+                                                    <th>Estado</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="usersTable">
+                                                <tr>
+                                                    <td colspan="6" class="text-center">Cargando usuarios...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="float-right d-none d-sm-block">
+                <b>Versión</b> 1.0.0
+            </div>
+            <strong>Copyright &copy; 2025 Gestor Documental - Todos los derechos reservados.</strong>
+        </footer>
+    </div>
+
+    <!-- Modal para crear/editar usuario -->
+    <div class="modal fade" id="userModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="userModalTitle">Nuevo Usuario</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="username">Nombre de Usuario *</label>
+                                    <input type="text" class="form-control" id="username" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="email">Email *</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="password">Contraseña *</label>
+                                    <input type="password" class="form-control" id="password" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirmar Contraseña *</label>
+                                    <input type="password" class="form-control" id="confirmPassword" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="roles">Roles</label>
+                                    <select class="form-control" id="roles" multiple>
+                                        <!-- Los roles se cargarán dinámicamente -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="activo">Estado</label>
+                                    <select class="form-control" id="activo">
+                                        <option value="true">Activo</option>
+                                        <option value="false">Inactivo</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/ui-manager.js"></script>
+    <script src="../js/user-manager.js"></script>
+
+    <script>
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!AuthManager.isAuthenticated()) {
+                window.location.href = '../index.html';
+                return;
+            }
+            loadUsers();
+            loadRoles();
+        });
+
+        // Cargar usuarios
+        async function loadUsers() {
+            try {
+                UIManager.showLoading('Cargando usuarios...', 'usersTable');
+                
+                const result = await UserManager.getUsers();
+                
+                if (result.success) {
+                    renderUsers(result.users);
+                } else {
+                    UIManager.showError('Error al cargar usuarios: ' + result.error, 'usersTable');
+                }
+            } catch (error) {
+                UIManager.showError('Error al cargar usuarios: ' + error.message, 'usersTable');
+            }
+        }
+
+        // Renderizar usuarios
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTable');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No se encontraron usuarios</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${renderUserRoles(user.roles)}</td>
+                    <td>
+                        <span class="badge ${user.activo ? 'badge-success' : 'badge-danger'}">
+                            ${user.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </td>
+                    <td class="user-actions">
+                        <button class="btn btn-sm btn-primary" onclick="editUser(${user.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Renderizar roles del usuario
+        function renderUserRoles(roles) {
+            if (!roles || roles.length === 0) {
+                return '<span class="text-muted">Sin roles</span>';
+            }
+            
+            return roles.map(role => 
+                `<span class="badge badge-info role-badge">${role.nombre}</span>`
+            ).join('');
+        }
+
+        // Cargar roles para el formulario
+        async function loadRoles() {
+            try {
+                const result = await UserManager.getRoles();
+                
+                if (result.success) {
+                    const rolesSelect = document.getElementById('roles');
+                    const filterRoleSelect = document.getElementById('filterRole');
+                    
+                    rolesSelect.innerHTML = result.roles.map(role => 
+                        `<option value="${role.id}">${role.nombre}</option>`
+                    ).join('');
+                    
+                    filterRoleSelect.innerHTML = '<option value="">Todos los roles</option>' + 
+                        result.roles.map(role => 
+                            `<option value="${role.id}">${role.nombre}</option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('Error al cargar roles:', error);
+            }
+        }
+
+        // Abrir modal para nuevo usuario
+        function openUserModal() {
+            document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+        }
+
+        // Editar usuario
+        async function editUser(userId) {
+            try {
+                const result = await UserManager.getUser(userId);
+                
+                if (result.success) {
+                    const user = result.user;
+                    document.getElementById('userModalTitle').textContent = 'Editar Usuario';
+                    document.getElementById('userId').value = user.id;
+                    document.getElementById('username').value = user.username;
+                    document.getElementById('email').value = user.email;
+                    document.getElementById('activo').value = user.activo.toString();
+                    
+                    // Seleccionar roles
+                    const rolesSelect = document.getElementById('roles');
+                    Array.from(rolesSelect.options).forEach(option => {
+                        option.selected = user.roles && user.roles.some(role => role.id == option.value);
+                    });
+                    
+                    $('#userModal').modal('show');
+                } else {
+                    UIManager.showError('Error al cargar usuario: ' + result.error);
+                }
+            } catch (error) {
+                UIManager.showError('Error al cargar usuario: ' + error.message);
+            }
+        }
+
+        // Guardar usuario
+        async function saveUser() {
+            const form = document.getElementById('userForm');
+            const formData = new FormData(form);
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                UIManager.showError('Las contraseñas no coinciden');
+                return;
+            }
+            
+            const userId = document.getElementById('userId').value;
+            const userData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: password,
+                activo: document.getElementById('activo').value === 'true',
+                roles: Array.from(document.getElementById('roles').selectedOptions).map(option => ({
+                    id: parseInt(option.value)
+                }))
+            };
+            
+            try {
+                UIManager.showLoading('Guardando usuario...');
+                
+                let result;
+                if (userId) {
+                    result = await UserManager.updateUser(userId, userData);
+                } else {
+                    result = await UserManager.createUser(userData);
+                }
+                
+                if (result.success) {
+                    UIManager.showSuccess('Usuario guardado exitosamente');
+                    $('#userModal').modal('hide');
+                    loadUsers();
+                } else {
+                    UIManager.showError('Error al guardar usuario: ' + result.error);
+                }
+            } catch (error) {
+                UIManager.showError('Error al guardar usuario: ' + error.message);
+            } finally {
+                UIManager.clearMessages();
+            }
+        }
+
+        // Eliminar usuario
+        async function deleteUser(userId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+                return;
+            }
+            
+            try {
+                UIManager.showLoading('Eliminando usuario...');
+                
+                const result = await UserManager.deleteUser(userId);
+                
+                if (result.success) {
+                    UIManager.showSuccess('Usuario eliminado exitosamente');
+                    loadUsers();
+                } else {
+                    UIManager.showError('Error al eliminar usuario: ' + result.error);
+                }
+            } catch (error) {
+                UIManager.showError('Error al eliminar usuario: ' + error.message);
+            } finally {
+                UIManager.clearMessages();
+            }
+        }
+
+        // Aplicar filtros
+        function applyFilters() {
+            // Implementar lógica de filtros
+            loadUsers();
+        }
+
+        // Limpiar filtros
+        function clearFilters() {
+            document.getElementById('searchUsername').value = '';
+            document.getElementById('filterRole').value = '';
+            document.getElementById('filterStatus').value = '';
+            loadUsers();
+        }
+    </script>
+</body>
+</html>

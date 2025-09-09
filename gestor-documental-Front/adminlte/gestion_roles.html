@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Roles - Gestor Documental</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .role-card {
+            border-left: 4px solid #6f42c1;
+            margin-bottom: 15px;
+        }
+        .permission-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .role-actions {
+            white-space: nowrap;
+        }
+        .modal-header {
+            background-color: #6f42c1;
+            color: white;
+        }
+        .permissions-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body class="hold-transition sidebar-mini">
+    <div class="wrapper">
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Sidebar -->
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <a href="dashboard.html" class="brand-link">
+                <i class="fas fa-file-alt brand-image"></i>
+                <span class="brand-text font-weight-light">Gestor Documental</span>
+            </a>
+
+            <div class="sidebar">
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+                        <li class="nav-item">
+                            <a href="dashboard.html" class="nav-link">
+                                <i class="nav-icon fas fa-home"></i>
+                                <p>Inicio</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="subida_documentos.html" class="nav-link">
+                                <i class="nav-icon fas fa-upload"></i>
+                                <p>Subir</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="historial_documentos.html" class="nav-link">
+                                <i class="nav-icon fas fa-history"></i>
+                                <p>Historial</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="comentarios_documentos.html" class="nav-link">
+                                <i class="nav-icon fas fa-comments"></i>
+                                <p>Comentarios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="gestion_usuarios.html" class="nav-link">
+                                <i class="nav-icon fas fa-users"></i>
+                                <p>Usuarios</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="gestion_roles.html" class="nav-link active">
+                                <i class="nav-icon fas fa-user-shield"></i>
+                                <p>Roles</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" onclick="logout()">
+                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                                <p>Cerrar sesión</p>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">Gestión de Roles</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <button class="btn btn-primary float-right" data-toggle="modal" data-target="#roleModal" onclick="openRoleModal()">
+                                <i class="fas fa-plus"></i> Nuevo Rol
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Lista de roles -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Roles del Sistema</h3>
+                                    <div class="card-tools">
+                                        <button class="btn btn-primary btn-sm" onclick="loadRoles()">
+                                            <i class="fas fa-sync"></i> Actualizar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Nombre</th>
+                                                    <th>Descripción</th>
+                                                    <th>Usuarios</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="rolesTable">
+                                                <tr>
+                                                    <td colspan="5" class="text-center">Cargando roles...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="float-right d-none d-sm-block">
+                <b>Versión</b> 1.0.0
+            </div>
+            <strong>Copyright &copy; 2025 Gestor Documental - Todos los derechos reservados.</strong>
+        </footer>
+    </div>
+
+    <!-- Modal para crear/editar rol -->
+    <div class="modal fade" id="roleModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="roleModalTitle">Nuevo Rol</h4>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="roleForm">
+                        <input type="hidden" id="roleId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="roleName">Nombre del Rol *</label>
+                                    <input type="text" class="form-control" id="roleName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="roleDescription">Descripción</label>
+                                    <input type="text" class="form-control" id="roleDescription">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="permissions-section">
+                            <h5>Permisos del Rol</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Gestión de Documentos</h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_upload" value="UPLOAD_DOCUMENT">
+                                        <label class="form-check-label" for="perm_upload">
+                                            Subir Documentos
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_view" value="VIEW_DOCUMENT">
+                                        <label class="form-check-label" for="perm_view">
+                                            Ver Documentos
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_download" value="DOWNLOAD_DOCUMENT">
+                                        <label class="form-check-label" for="perm_download">
+                                            Descargar Documentos
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_delete" value="DELETE_DOCUMENT">
+                                        <label class="form-check-label" for="perm_delete">
+                                            Eliminar Documentos
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Gestión de Usuarios</h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_manage_users" value="MANAGE_USERS">
+                                        <label class="form-check-label" for="perm_manage_users">
+                                            Gestionar Usuarios
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_manage_roles" value="MANAGE_ROLES">
+                                        <label class="form-check-label" for="perm_manage_roles">
+                                            Gestionar Roles
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_view_audit" value="VIEW_AUDIT">
+                                        <label class="form-check-label" for="perm_view_audit">
+                                            Ver Auditoría
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="perm_manage_workflow" value="MANAGE_WORKFLOW">
+                                        <label class="form-check-label" for="perm_manage_workflow">
+                                            Gestionar Workflow
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveRole()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/ui-manager.js"></script>
+    <script src="../js/role-manager.js"></script>
+
+    <script>
+        // Verificar autenticación al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!AuthManager.isAuthenticated()) {
+                window.location.href = '../index.html';
+                return;
+            }
+            loadRoles();
+        });
+
+        // Cargar roles
+        async function loadRoles() {
+            try {
+                UIManager.showLoading('Cargando roles...', 'rolesTable');
+                
+                const result = await RoleManager.getRoles();
+                
+                if (result.success) {
+                    renderRoles(result.roles);
+                } else {
+                    UIManager.showError('Error al cargar roles: ' + result.error, 'rolesTable');
+                }
+            } catch (error) {
+                UIManager.showError('Error al cargar roles: ' + error.message, 'rolesTable');
+            }
+        }
+
+        // Renderizar roles
+        function renderRoles(roles) {
+            const tbody = document.getElementById('rolesTable');
+            
+            if (roles.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No se encontraron roles</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = roles.map(role => `
+                <tr>
+                    <td>${role.id}</td>
+                    <td>
+                        <span class="badge badge-primary">${role.nombre}</span>
+                    </td>
+                    <td>${role.descripcion || 'Sin descripción'}</td>
+                    <td>
+                        <span class="badge badge-info">${role.usuarios ? role.usuarios.length : 0} usuarios</span>
+                    </td>
+                    <td class="role-actions">
+                        <button class="btn btn-sm btn-primary" onclick="editRole(${role.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.id})" 
+                                ${role.nombre === 'ADMIN' ? 'disabled' : ''}>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Abrir modal para nuevo rol
+        function openRoleModal() {
+            document.getElementById('roleModalTitle').textContent = 'Nuevo Rol';
+            document.getElementById('roleForm').reset();
+            document.getElementById('roleId').value = '';
+        }
+
+        // Editar rol
+        async function editRole(roleId) {
+            try {
+                const result = await RoleManager.getRole(roleId);
+                
+                if (result.success) {
+                    const role = result.role;
+                    document.getElementById('roleModalTitle').textContent = 'Editar Rol';
+                    document.getElementById('roleId').value = role.id;
+                    document.getElementById('roleName').value = role.nombre;
+                    document.getElementById('roleDescription').value = role.descripcion || '';
+                    
+                    // Seleccionar permisos
+                    if (role.permisos) {
+                        role.permisos.forEach(permiso => {
+                            const checkbox = document.getElementById(`perm_${permiso.toLowerCase()}`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                            }
+                        });
+                    }
+                    
+                    $('#roleModal').modal('show');
+                } else {
+                    UIManager.showError('Error al cargar rol: ' + result.error);
+                }
+            } catch (error) {
+                UIManager.showError('Error al cargar rol: ' + error.message);
+            }
+        }
+
+        // Guardar rol
+        async function saveRole() {
+            const roleId = document.getElementById('roleId').value;
+            const roleData = {
+                nombre: document.getElementById('roleName').value,
+                descripcion: document.getElementById('roleDescription').value,
+                permisos: getSelectedPermissions()
+            };
+            
+            try {
+                UIManager.showLoading('Guardando rol...');
+                
+                let result;
+                if (roleId) {
+                    result = await RoleManager.updateRole(roleId, roleData);
+                } else {
+                    result = await RoleManager.createRole(roleData);
+                }
+                
+                if (result.success) {
+                    UIManager.showSuccess('Rol guardado exitosamente');
+                    $('#roleModal').modal('hide');
+                    loadRoles();
+                } else {
+                    UIManager.showError('Error al guardar rol: ' + result.error);
+                }
+            } catch (error) {
+                UIManager.showError('Error al guardar rol: ' + error.message);
+            } finally {
+                UIManager.clearMessages();
+            }
+        }
+
+        // Obtener permisos seleccionados
+        function getSelectedPermissions() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        // Eliminar rol
+        async function deleteRole(roleId) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este rol?')) {
+                return;
+            }
+            
+            try {
+                UIManager.showLoading('Eliminando rol...');
+                
+                const result = await RoleManager.deleteRole(roleId);
+                
+                if (result.success) {
+                    UIManager.showSuccess('Rol eliminado exitosamente');
+                    loadRoles();
+                } else {
+                    UIManager.showError('Error al eliminar rol: ' + result.error);
+                }
+            } catch (error) {
+                UIManager.showError('Error al eliminar rol: ' + error.message);
+            } finally {
+                UIManager.clearMessages();
+            }
+        }
+    </script>
+</body>
+</html>
+

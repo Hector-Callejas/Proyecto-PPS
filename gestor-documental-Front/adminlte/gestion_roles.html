@@ -28,6 +28,12 @@
             border-radius: 5px;
             margin-top: 15px;
         }
+        
+        /* Ocultar botones de debug visualmente */
+        .btn[onclick="debugRoles()"],
+        .btn[onclick="resetPageState()"] {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="hold-transition sidebar-mini">
@@ -109,8 +115,14 @@
                             <h1 class="m-0">Gestión de Roles</h1>
                         </div>
                         <div class="col-sm-6">
-                            <button class="btn btn-primary float-right" data-toggle="modal" data-target="#roleModal" onclick="openRoleModal()">
+                            <button class="btn btn-primary float-right" data-bs-toggle="modal" data-bs-target="#roleModal" onclick="openRoleModal()">
                                 <i class="fas fa-plus"></i> Nuevo Rol
+                            </button>
+                            <button class="btn btn-info float-right mr-2" onclick="debugRoles()" title="Debug: Ver datos de roles en consola">
+                                <i class="fas fa-bug"></i> Debug
+                            </button>
+                            <button class="btn btn-warning float-right mr-2" onclick="resetPageState()" title="Resetear página si queda bloqueada">
+                                <i class="fas fa-refresh"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -119,6 +131,13 @@
 
             <section class="content">
                 <div class="container-fluid">
+                    <!-- Contenedor de mensajes -->
+                    <div id="messageContainer" class="row mb-3" style="display: none;">
+                        <div class="col-12">
+                            <!-- Los mensajes se mostrarán aquí -->
+                        </div>
+                    </div>
+                    
                     <!-- Lista de roles -->
                     <div class="row">
                         <div class="col-12">
@@ -173,9 +192,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="roleModalTitle">Nuevo Rol</h4>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="roleForm">
@@ -257,7 +274,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="saveRole()">Guardar</button>
                 </div>
             </div>
@@ -270,72 +287,154 @@
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/ui-manager.js"></script>
+    <script src="../js/authorization-manager.js"></script>
     <script src="../js/role-manager.js"></script>
 
     <script>
-        // Verificar autenticación al cargar
-        document.addEventListener('DOMContentLoaded', function() {
+        // Verificar autenticación y permisos al cargar
+        document.addEventListener('DOMContentLoaded', async function() {
             if (!AuthManager.isAuthenticated()) {
                 window.location.href = '../index.html';
                 return;
             }
+            
+            // Asegurar que el scroll funcione correctamente
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            
+            // Inicializar sistema de autorización
+            const authInitialized = await AuthorizationManager.initialize();
+            if (!authInitialized) {
+                UIManager.showError('Error al cargar permisos del usuario', 'messageContainer');
+                return;
+            }
+            
+            // Verificar si el usuario puede gestionar roles
+            if (!AuthorizationManager.canManageRoles()) {
+                UIManager.showError('No tienes permisos para gestionar roles. Se requiere el permiso: MANAGE_ROLES', 'messageContainer');
+                
+                // Ocultar botones de gestión
+                const newRoleBtn = document.querySelector('button[onclick="openRoleModal()"]');
+                if (newRoleBtn) newRoleBtn.style.display = 'none';
+                
+                const updateBtn = document.querySelector('button[onclick="loadRoles()"]');
+                if (updateBtn) updateBtn.style.display = 'none';
+                
+                return;
+            }
+            
             loadRoles();
+            
+            // Agregar event listener alternativo para el botón de nuevo rol
+            const newRoleBtn = document.querySelector('button[onclick="openRoleModal()"]');
+            if (newRoleBtn) {
+                newRoleBtn.addEventListener('click', function(e) {
+                    console.log('Botón de nuevo rol clickeado (event listener)');
+                    openRoleModal();
+                });
+            }
+            
+            // Event listener para detectar cuando el modal se cierra
+            const roleModal = document.getElementById('roleModal');
+            if (roleModal) {
+                roleModal.addEventListener('hidden.bs.modal', function() {
+                    console.log('Modal de rol cerrado correctamente');
+                    // Asegurar que el scroll funcione después de cerrar modal
+                    ensureScrollEnabled();
+                    // Limpiar estado después de cerrar modal
+                    setTimeout(() => {
+                        resetPageState();
+                    }, 500);
+                });
+                
+                roleModal.addEventListener('hide.bs.modal', function() {
+                    console.log('Modal de rol cerrándose...');
+                    ensureScrollEnabled();
+                });
+            }
         });
 
         // Cargar roles
         async function loadRoles() {
             try {
-                UIManager.showLoading('Cargando roles...', 'rolesTable');
+                console.log('Iniciando carga de roles...');
+                UIManager.showLoading('Cargando roles...', 'messageContainer');
                 
                 const result = await RoleManager.getRoles();
+                console.log('Resultado de carga de roles:', result);
                 
                 if (result.success) {
+                    console.log('Roles cargados exitosamente:', result.roles);
                     renderRoles(result.roles);
+                    UIManager.clearMessages('messageContainer');
                 } else {
-                    UIManager.showError('Error al cargar roles: ' + result.error, 'rolesTable');
+                    console.error('Error al cargar roles:', result.error);
+                    UIManager.showError('Error al cargar roles: ' + result.error, 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al cargar roles: ' + error.message, 'rolesTable');
+                console.error('Error en loadRoles:', error);
+                UIManager.showError('Error al cargar roles: ' + error.message, 'messageContainer');
+            } finally {
+                // Asegurar que el scroll funcione
+                ensureScrollEnabled();
             }
         }
 
         // Renderizar roles
         function renderRoles(roles) {
+            console.log('Renderizando roles:', roles);
             const tbody = document.getElementById('rolesTable');
             
-            if (roles.length === 0) {
+            if (!roles || roles.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center">No se encontraron roles</td></tr>';
                 return;
             }
 
             tbody.innerHTML = roles.map(role => `
                 <tr>
-                    <td>${role.id}</td>
+                    <td>${role.id || 'N/A'}</td>
                     <td>
-                        <span class="badge badge-primary">${role.nombre}</span>
+                        <span class="badge badge-primary">${role.nombre || 'Sin nombre'}</span>
                     </td>
                     <td>${role.descripcion || 'Sin descripción'}</td>
                     <td>
-                        <span class="badge badge-info">${role.usuarios ? role.usuarios.length : 0} usuarios</span>
+                        <span class="badge badge-success">0 usuarios</span>
                     </td>
                     <td class="role-actions">
-                        <button class="btn btn-sm btn-primary" onclick="editRole(${role.id})">
+                        <button class="btn btn-sm btn-primary" onclick="editRole(${role.id})" title="Editar rol">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.id})" 
-                                ${role.nombre === 'ADMIN' ? 'disabled' : ''}>
+                                ${(role.nombre === 'ADMIN') ? 'disabled' : ''} title="Eliminar rol">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>
             `).join('');
+            
+            console.log('Roles renderizados correctamente');
         }
 
         // Abrir modal para nuevo rol
         function openRoleModal() {
+            console.log('Abriendo modal de nuevo rol...');
+            
+            // Limpiar formulario
             document.getElementById('roleModalTitle').textContent = 'Nuevo Rol';
             document.getElementById('roleForm').reset();
             document.getElementById('roleId').value = '';
+            
+            // Desmarcar todos los checkboxes de permisos
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Mostrar el modal usando Bootstrap 5
+            const modal = new bootstrap.Modal(document.getElementById('roleModal'));
+            modal.show();
+            
+            console.log('Modal de nuevo rol abierto');
         }
 
         // Editar rol
@@ -353,19 +452,24 @@
                     // Seleccionar permisos
                     if (role.permisos) {
                         role.permisos.forEach(permiso => {
-                            const checkbox = document.getElementById(`perm_${permiso.toLowerCase()}`);
-                            if (checkbox) {
-                                checkbox.checked = true;
-                            }
+                            // Buscar checkbox por valor en lugar de ID
+                            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                            checkboxes.forEach(checkbox => {
+                                if (checkbox.value === permiso) {
+                                    checkbox.checked = true;
+                                }
+                            });
                         });
                     }
                     
-                    $('#roleModal').modal('show');
+                    // Mostrar modal usando Bootstrap 5
+                    const modal = new bootstrap.Modal(document.getElementById('roleModal'));
+                    modal.show();
                 } else {
-                    UIManager.showError('Error al cargar rol: ' + result.error);
+                    UIManager.showError('Error al cargar rol: ' + result.error, 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al cargar rol: ' + error.message);
+                UIManager.showError('Error al cargar rol: ' + error.message, 'messageContainer');
             }
         }
 
@@ -379,26 +483,76 @@
             };
             
             try {
-                UIManager.showLoading('Guardando rol...');
+                console.log('Iniciando guardado de rol...');
+                
+                // Mostrar loading en el botón de guardar
+                const saveButton = document.querySelector('button[onclick="saveRole()"]');
+                showButtonLoading(saveButton, 'Guardar');
+                
+                UIManager.showLoading('Guardando rol...', 'messageContainer');
                 
                 let result;
                 if (roleId) {
+                    console.log('Actualizando rol existente...');
                     result = await RoleManager.updateRole(roleId, roleData);
                 } else {
+                    console.log('Creando nuevo rol...');
                     result = await RoleManager.createRole(roleData);
                 }
                 
+                console.log('Resultado del guardado:', result);
+                
                 if (result.success) {
-                    UIManager.showSuccess('Rol guardado exitosamente');
-                    $('#roleModal').modal('hide');
-                    loadRoles();
+                    console.log('Rol guardado exitosamente, cerrando modal...');
+                    UIManager.showSuccess('Rol guardado exitosamente', 'messageContainer');
+                    
+                    // Cerrar modal de forma más robusta
+                    try {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('roleModal'));
+                        if (modal) {
+                            modal.hide();
+                            console.log('Modal cerrado correctamente');
+                        } else {
+                            // Si no hay instancia, crear una nueva y cerrarla
+                            const newModal = new bootstrap.Modal(document.getElementById('roleModal'));
+                            newModal.hide();
+                            console.log('Modal cerrado con nueva instancia');
+                        }
+                    } catch (modalError) {
+                        console.error('Error cerrando modal:', modalError);
+                        // Forzar cierre del modal
+                        document.getElementById('roleModal').style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) backdrop.remove();
+                    }
+                    
+                    // Recargar roles después de un pequeño delay
+                    setTimeout(() => {
+                        console.log('Recargando lista de roles...');
+                        loadRoles();
+                    }, 500);
+                    
                 } else {
-                    UIManager.showError('Error al guardar rol: ' + result.error);
+                    console.error('Error al guardar rol:', result.error);
+                    UIManager.showError('Error al guardar rol: ' + result.error, 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al guardar rol: ' + error.message);
+                console.error('Error en saveRole:', error);
+                UIManager.showError('Error al guardar rol: ' + error.message, 'messageContainer');
             } finally {
-                UIManager.clearMessages();
+                console.log('Limpiando mensajes...');
+                
+                // Asegurar que el scroll funcione
+                ensureScrollEnabled();
+                
+                // Restaurar botón de guardar
+                const saveButton = document.querySelector('button[onclick="saveRole()"]');
+                hideButtonLoading(saveButton);
+                
+                setTimeout(() => {
+                    UIManager.clearMessages('messageContainer');
+                }, 1000);
             }
         }
 
@@ -408,6 +562,78 @@
             return Array.from(checkboxes).map(checkbox => checkbox.value);
         }
 
+        // Función para asegurar que el scroll funcione
+        function ensureScrollEnabled() {
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            document.body.classList.remove('modal-open');
+        }
+
+        // Función para limpiar estado de la página
+        function resetPageState() {
+            console.log('Reseteando estado de la página...');
+            
+            // Asegurar que el scroll esté habilitado
+            ensureScrollEnabled();
+            
+            // Limpiar todos los modales abiertos
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.style.display = 'none';
+            });
+            
+            // Limpiar backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Limpiar mensajes de UI
+            UIManager.clearMessages('messageContainer');
+            
+            console.log('Estado de la página reseteado');
+        }
+
+        // Función para mostrar loading en botón específico
+        function showButtonLoading(button, originalText = 'Guardar') {
+            if (button) {
+                button.disabled = true;
+                button.dataset.originalText = button.textContent;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            }
+        }
+
+        function hideButtonLoading(button) {
+            if (button && button.dataset.originalText) {
+                button.disabled = false;
+                button.textContent = button.dataset.originalText;
+            }
+        }
+
+        // Función de debug para roles
+        async function debugRoles() {
+            console.log('=== DEBUG ROLES ===');
+            console.log('AuthManager disponible:', typeof AuthManager);
+            console.log('RoleManager disponible:', typeof RoleManager);
+            console.log('API_BASE_URL:', RoleManager.API_BASE_URL);
+            console.log('Usuario autenticado:', AuthManager.isAuthenticated());
+            
+            try {
+                console.log('Probando carga de roles...');
+                const result = await RoleManager.getRoles();
+                console.log('Resultado completo:', result);
+                
+                if (result.success) {
+                    console.log('Roles encontrados:', result.roles);
+                    console.log('Cantidad de roles:', result.roles ? result.roles.length : 0);
+                } else {
+                    console.error('Error en la carga:', result.error);
+                }
+            } catch (error) {
+                console.error('Error en debug:', error);
+            }
+            
+            console.log('=== FIN DEBUG ===');
+        }
+
         // Eliminar rol
         async function deleteRole(roleId) {
             if (!confirm('¿Estás seguro de que quieres eliminar este rol?')) {
@@ -415,20 +641,20 @@
             }
             
             try {
-                UIManager.showLoading('Eliminando rol...');
+                UIManager.showLoading('Eliminando rol...', 'messageContainer');
                 
                 const result = await RoleManager.deleteRole(roleId);
                 
                 if (result.success) {
-                    UIManager.showSuccess('Rol eliminado exitosamente');
+                    UIManager.showSuccess('Rol eliminado exitosamente', 'messageContainer');
                     loadRoles();
                 } else {
-                    UIManager.showError('Error al eliminar rol: ' + result.error);
+                    UIManager.showError('Error al eliminar rol: ' + result.error, 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al eliminar rol: ' + error.message);
+                UIManager.showError('Error al eliminar rol: ' + error.message, 'messageContainer');
             } finally {
-                UIManager.clearMessages();
+                UIManager.clearMessages('messageContainer');
             }
         }
     </script>

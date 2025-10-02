@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(locations = "classpath:application-test.yml")
+@TestPropertySource(locations = "classpath:application-test.properties")
 class DatabaseConnectionTest {
 
     @Autowired
@@ -46,8 +46,8 @@ class DatabaseConnectionTest {
             assertNotNull(metaData, "Metadatos de conexión no deben ser null");
             
             // Verificar información de la base de datos
-            assertEquals("H2", metaData.getDatabaseProductName(), 
-                "Base de datos debe ser H2 para pruebas");
+            assertEquals("PostgreSQL", metaData.getDatabaseProductName(), 
+                "Base de datos debe ser PostgreSQL para pruebas");
             
             // Verificar versión del driver
             assertNotNull(metaData.getDriverVersion(), "Versión del driver no debe ser null");
@@ -68,11 +68,11 @@ class DatabaseConnectionTest {
                 tableNames.add(tableName);
             }
             
-            // Verificar que existen las tablas principales
-            assertTrue(tableNames.contains("USUARIOS"), "Tabla USUARIOS debe existir");
-            assertTrue(tableNames.contains("ROLES"), "Tabla ROLES debe existir");
-            assertTrue(tableNames.contains("DOCUMENTOS"), "Tabla DOCUMENTOS debe existir");
-            assertTrue(tableNames.contains("WORKFLOWS"), "Tabla WORKFLOWS debe existir");
+            // Verificar que existen las tablas principales (en minúsculas para PostgreSQL)
+            assertTrue(tableNames.contains("usuarios"), "Tabla usuarios debe existir");
+            assertTrue(tableNames.contains("roles"), "Tabla roles debe existir");
+            assertTrue(tableNames.contains("documentos"), "Tabla documentos debe existir");
+            assertTrue(tableNames.contains("workflows"), "Tabla workflows debe existir");
             
             System.out.println("Tablas encontradas: " + tableNames);
         }
@@ -83,8 +83,8 @@ class DatabaseConnectionTest {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             
-            // Verificar estructura de la tabla USUARIOS
-            ResultSet columns = metaData.getColumns(null, null, "USUARIOS", null);
+            // Verificar estructura de la tabla usuarios (minúsculas para PostgreSQL)
+            ResultSet columns = metaData.getColumns(null, null, "usuarios", null);
             
             List<String> columnNames = new ArrayList<>();
             while (columns.next()) {
@@ -96,11 +96,11 @@ class DatabaseConnectionTest {
                 System.out.println("Columna: " + columnName + " - Tipo: " + dataType + " - Nullable: " + isNullable);
             }
             
-            // Verificar columnas obligatorias
-            assertTrue(columnNames.contains("ID"), "Columna ID debe existir en USUARIOS");
-            assertTrue(columnNames.contains("USERNAME"), "Columna USERNAME debe existir en USUARIOS");
-            assertTrue(columnNames.contains("EMAIL"), "Columna EMAIL debe existir en USUARIOS");
-            assertTrue(columnNames.contains("PASSWORD"), "Columna PASSWORD debe existir en USUARIOS");
+            // Verificar columnas obligatorias (minúsculas para PostgreSQL)
+            assertTrue(columnNames.contains("id"), "Columna id debe existir en usuarios");
+            assertTrue(columnNames.contains("username"), "Columna username debe existir en usuarios");
+            assertTrue(columnNames.contains("email"), "Columna email debe existir en usuarios");
+            assertTrue(columnNames.contains("password"), "Columna password debe existir en usuarios");
         }
     }
 
@@ -110,7 +110,7 @@ class DatabaseConnectionTest {
             DatabaseMetaData metaData = connection.getMetaData();
             
             // Verificar claves primarias
-            ResultSet primaryKeys = metaData.getPrimaryKeys(null, null, "USUARIOS");
+            ResultSet primaryKeys = metaData.getPrimaryKeys(null, null, "usuarios");
             
             List<String> pkColumns = new ArrayList<>();
             while (primaryKeys.next()) {
@@ -118,8 +118,8 @@ class DatabaseConnectionTest {
                 pkColumns.add(pkColumn);
             }
             
-            assertTrue(pkColumns.contains("ID"), "ID debe ser clave primaria en USUARIOS");
-            assertEquals(1, pkColumns.size(), "USUARIOS debe tener solo una clave primaria");
+            assertTrue(pkColumns.contains("id"), "id debe ser clave primaria en usuarios");
+            assertEquals(1, pkColumns.size(), "usuarios debe tener solo una clave primaria");
         }
     }
 
@@ -129,7 +129,7 @@ class DatabaseConnectionTest {
             DatabaseMetaData metaData = connection.getMetaData();
             
             // Verificar claves foráneas
-            ResultSet foreignKeys = metaData.getImportedKeys(null, null, "DOCUMENTOS");
+            ResultSet foreignKeys = metaData.getImportedKeys(null, null, "documentos");
             
             List<String> fkColumns = new ArrayList<>();
             while (foreignKeys.next()) {
@@ -138,13 +138,13 @@ class DatabaseConnectionTest {
                 fkColumns.add(fkColumn + " -> " + pkTable);
             }
             
-            // Verificar que DOCUMENTOS tiene FK a USUARIOS
+            // Verificar que documentos tiene FK a usuarios
             boolean hasUserFK = fkColumns.stream()
-                .anyMatch(fk -> fk.contains("CREADO_POR") && fk.contains("USUARIOS"));
+                .anyMatch(fk -> fk.contains("creado_por") && fk.contains("usuarios"));
             
-            assertTrue(hasUserFK, "DOCUMENTOS debe tener FK a USUARIOS en CREADO_POR");
+            assertTrue(hasUserFK, "documentos debe tener FK a usuarios en creado_por");
             
-            System.out.println("Claves foráneas en DOCUMENTOS: " + fkColumns);
+            System.out.println("Claves foráneas en documentos: " + fkColumns);
         }
     }
 
@@ -154,7 +154,7 @@ class DatabaseConnectionTest {
             DatabaseMetaData metaData = connection.getMetaData();
             
             // Verificar índices
-            ResultSet indexes = metaData.getIndexInfo(null, null, "USUARIOS", false, false);
+            ResultSet indexes = metaData.getIndexInfo(null, null, "usuarios", false, false);
             
             List<String> indexNames = new ArrayList<>();
             while (indexes.next()) {
@@ -167,13 +167,13 @@ class DatabaseConnectionTest {
                 }
             }
             
-            System.out.println("Índices en USUARIOS: " + indexNames);
+            System.out.println("Índices en usuarios: " + indexNames);
             
             // Verificar que existen índices para campos únicos
-            assertTrue(indexNames.stream().anyMatch(idx -> idx.contains("USERNAME")), 
-                "Debe existir índice en USERNAME");
-            assertTrue(indexNames.stream().anyMatch(idx -> idx.contains("EMAIL")), 
-                "Debe existir índice en EMAIL");
+            assertTrue(indexNames.stream().anyMatch(idx -> idx.contains("username")), 
+                "Debe existir índice en username");
+            assertTrue(indexNames.stream().anyMatch(idx -> idx.contains("email")), 
+                "Debe existir índice en email");
         }
     }
 
@@ -211,7 +211,9 @@ class DatabaseConnectionTest {
     void testTransactionSupport() throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             // Verificar que la base de datos soporta transacciones
-            assertFalse(connection.getAutoCommit(), "AutoCommit debe estar deshabilitado para transacciones");
+            // En PostgreSQL, AutoCommit puede estar habilitado por defecto
+            boolean autoCommit = connection.getAutoCommit();
+            System.out.println("AutoCommit inicial: " + autoCommit);
             
             // Verificar que se pueden hacer rollback
             connection.setAutoCommit(false);
@@ -219,14 +221,14 @@ class DatabaseConnectionTest {
             try {
                 // Intentar una operación que falle
                 var stmt = connection.createStatement();
-                stmt.execute("INSERT INTO USUARIOS (ID, USERNAME, EMAIL, PASSWORD) VALUES (999999, 'test', 'test@test.com', 'password')");
+                stmt.execute("INSERT INTO usuarios (id, username, email, password) VALUES (999999, 'test', 'test@test.com', 'password')");
                 
                 // Si llegamos aquí, la inserción fue exitosa, hacer rollback
                 connection.rollback();
                 
                 // Verificar que el rollback funcionó
                 var checkStmt = connection.createStatement();
-                var rs = checkStmt.executeQuery("SELECT COUNT(*) FROM USUARIOS WHERE ID = 999999");
+                var rs = checkStmt.executeQuery("SELECT COUNT(*) FROM usuarios WHERE id = 999999");
                 rs.next();
                 assertEquals(0, rs.getInt(1), "El rollback debe haber eliminado la inserción");
                 

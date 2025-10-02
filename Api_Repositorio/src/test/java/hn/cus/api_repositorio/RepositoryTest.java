@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(locations = "classpath:application-test.yml")
+@TestPropertySource(locations = "classpath:application-test.properties")
 @Transactional
 class RepositoryTest {
 
@@ -58,14 +58,17 @@ class RepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Crear datos de prueba antes de cada test
+        // Crear datos de prueba antes de cada test con nombres únicos
+        long timestamp = System.currentTimeMillis();
+        
         testRol = new Rol();
-        testRol.setNombre("TEST_ROLE");
+        testRol.setNombre("TEST_ROLE_" + timestamp);
+        testRol.setDescripcion("Rol de prueba");
         testRol = rolRepository.save(testRol);
 
         testUsuario = new Usuario();
-        testUsuario.setUsername("testuser");
-        testUsuario.setEmail("test@example.com");
+        testUsuario.setUsername("testuser_" + timestamp);
+        testUsuario.setEmail("test" + timestamp + "@example.com");
         testUsuario.setPassword("password123");
         testUsuario.setActivo(true);
         
@@ -75,7 +78,7 @@ class RepositoryTest {
         testUsuario = usuarioRepository.save(testUsuario);
 
         testWorkflow = new Workflow();
-        testWorkflow.setNombre("Test Workflow");
+        testWorkflow.setNombre("Test Workflow " + timestamp);
         testWorkflow.setDescripcion("Workflow de prueba");
         testWorkflow = workflowRepository.save(testWorkflow);
     }
@@ -88,11 +91,11 @@ class RepositoryTest {
         // Buscar por ID
         Optional<Usuario> foundUsuario = usuarioRepository.findById(testUsuario.getId());
         assertTrue(foundUsuario.isPresent());
-        assertEquals("testuser", foundUsuario.get().getUsername());
-        assertEquals("test@example.com", foundUsuario.get().getEmail());
+        assertEquals(testUsuario.getUsername(), foundUsuario.get().getUsername());
+        assertEquals(testUsuario.getEmail(), foundUsuario.get().getEmail());
         
         // Buscar por username
-        Optional<Usuario> userByUsername = usuarioRepository.findByUsername("testuser");
+        Optional<Usuario> userByUsername = usuarioRepository.findByUsername(testUsuario.getUsername());
         assertTrue(userByUsername.isPresent());
         assertEquals(testUsuario.getId(), userByUsername.get().getId());
     }
@@ -100,9 +103,10 @@ class RepositoryTest {
     @Test
     void testUsuarioRepositoryFindByActivo() {
         // Crear usuario inactivo
+        long timestamp = System.currentTimeMillis();
         Usuario inactiveUser = new Usuario();
-        inactiveUser.setUsername("inactiveuser");
-        inactiveUser.setEmail("inactive@example.com");
+        inactiveUser.setUsername("inactiveuser_" + timestamp);
+        inactiveUser.setEmail("inactive" + timestamp + "@example.com");
         inactiveUser.setPassword("password123");
         inactiveUser.setActivo(false);
         inactiveUser = usuarioRepository.save(inactiveUser);
@@ -128,10 +132,10 @@ class RepositoryTest {
         // Buscar por ID
         Optional<Rol> foundRol = rolRepository.findById(testRol.getId());
         assertTrue(foundRol.isPresent());
-        assertEquals("TEST_ROLE", foundRol.get().getNombre());
+        assertEquals(testRol.getNombre(), foundRol.get().getNombre());
         
         // Buscar por nombre
-        Optional<Rol> rolByNombre = rolRepository.findByNombre("TEST_ROLE");
+        Optional<Rol> rolByNombre = rolRepository.findByNombre(testRol.getNombre());
         assertTrue(rolByNombre.isPresent());
         assertEquals(testRol.getId(), rolByNombre.get().getId());
     }
@@ -208,8 +212,8 @@ class RepositoryTest {
         // Buscar por ID
         Optional<Workflow> foundWorkflow = workflowRepository.findById(testWorkflow.getId());
         assertTrue(foundWorkflow.isPresent());
-        assertEquals("Test Workflow", foundWorkflow.get().getNombre());
-        assertEquals("Workflow de prueba", foundWorkflow.get().getDescripcion());
+        assertEquals(testWorkflow.getNombre(), foundWorkflow.get().getNombre());
+        assertEquals(testWorkflow.getDescripcion(), foundWorkflow.get().getDescripcion());
         
         // Buscar todos los workflows y filtrar por nombre
         List<Workflow> allWorkflows = workflowRepository.findAll();

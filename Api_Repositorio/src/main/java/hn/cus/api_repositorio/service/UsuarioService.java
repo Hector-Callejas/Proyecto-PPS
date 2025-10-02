@@ -11,7 +11,12 @@ package hn.cus.api_repositorio.service;
 // UsuarioService.java
 
 import hn.cus.api_repositorio.dto.UsuarioDTO;
+import java.util.List;
 
 public interface UsuarioService {
     UsuarioDTO obtenerUsuarioDTO(Long id);
+    List<UsuarioDTO> obtenerTodosUsuarios();
+    UsuarioDTO crearUsuario(UsuarioDTO usuarioDTO);
+    UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO);
+    void eliminarUsuario(Long id);
 }

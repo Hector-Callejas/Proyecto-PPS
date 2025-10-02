@@ -186,6 +186,83 @@ class DocumentManager {
     }
 
     /**
+     * Descarga un documento
+     * @param {number} documentId - ID del documento
+     * @returns {Promise} - Promesa con el resultado
+     */
+    static async downloadDocument(documentId) {
+        try {
+            // Primero obtener la información del documento
+            const docResult = await this.getDocument(documentId);
+            if (!docResult.success) {
+                throw new Error(docResult.error || 'No se pudo obtener información del documento');
+            }
+
+            const docData = docResult.document;
+            
+            // Verificar si es un archivo Base64 o físico
+            if (docData.rutaArchivo && docData.rutaArchivo.startsWith('base64://')) {
+                // Archivo guardado como Base64
+                const contentResult = await this.getDocumentContent(documentId);
+                if (!contentResult.success) {
+                    throw new Error(contentResult.error || 'No se pudo obtener el contenido del documento');
+                }
+
+                // Crear blob y descargar
+                const byteCharacters = atob(contentResult.content);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: docData.tipoMime || 'application/octet-stream' });
+                
+                // Crear enlace de descarga
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = docData.nombreOriginal || 'documento';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                return { success: true, filename: docData.nombreOriginal };
+
+            } else {
+                // Archivo guardado físicamente - descargar usando fetch con autenticación
+                const response = await AuthManager.authenticatedFetch(
+                    `${this.API_BASE_URL}/api/documentos/${documentId}/download`
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+                // Obtener el blob del archivo
+                const blob = await response.blob();
+                
+                // Crear enlace de descarga
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = docData.nombreOriginal || 'documento';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                return { success: true, filename: docData.nombreOriginal };
+            }
+
+        } catch (error) {
+            console.error('Error al descargar documento:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Elimina un documento
      * @param {number} documentId - ID del documento
      * @returns {Promise} - Promesa con el resultado
@@ -288,3 +365,6 @@ class DocumentManager {
         return icons[mimeType] || '📄';
     }
 }
+
+// Timestamp para forzar recarga del caché
+console.log('DocumentManager cargado:', new Date().toISOString());

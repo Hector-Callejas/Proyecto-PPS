@@ -26,5 +26,7 @@ public class UsuarioDTO {
     private Long id;
     private String username;
     private String email;
+    private String password;
+    private Boolean activo;
     private List<String> roles;
 }

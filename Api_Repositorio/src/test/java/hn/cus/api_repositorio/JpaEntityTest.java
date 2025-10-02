@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-@TestPropertySource(locations = "classpath:application-test.yml")
+@TestPropertySource(locations = "classpath:application-test.properties")
 @Transactional
 class JpaEntityTest {
 
@@ -54,9 +54,10 @@ class JpaEntityTest {
 
     @Test
     void testRolEntityMapping() {
-        // Crear un rol de prueba
+        // Crear un rol de prueba con nombre único
         Rol rol = new Rol();
-        rol.setNombre("ADMIN");
+        rol.setNombre("TEST_ROLE_" + System.currentTimeMillis());
+        rol.setDescripcion("Rol de prueba para test");
 
         // Persistir el rol
         entityManager.persist(rol);
@@ -68,20 +69,21 @@ class JpaEntityTest {
         
         Rol foundRol = entityManager.find(Rol.class, rol.getId());
         assertNotNull(foundRol);
-        assertEquals("ADMIN", foundRol.getNombre());
+        assertEquals(rol.getNombre(), foundRol.getNombre());
     }
 
     @Test
     void testUsuarioRolRelationship() {
-        // Crear rol
+        // Crear rol con nombre único
         Rol rol = new Rol();
-        rol.setNombre("USER");
+        rol.setNombre("TEST_USER_ROLE_" + System.currentTimeMillis());
+        rol.setDescripcion("Rol de usuario para test");
         entityManager.persist(rol);
 
         // Crear usuario con rol
         Usuario usuario = new Usuario();
-        usuario.setUsername("userwithrole");
-        usuario.setEmail("user@example.com");
+        usuario.setUsername("userwithrole" + System.currentTimeMillis());
+        usuario.setEmail("user" + System.currentTimeMillis() + "@example.com");
         usuario.setPassword("password123");
         
         Set<Rol> roles = new HashSet<>();
@@ -98,15 +100,15 @@ class JpaEntityTest {
         assertNotNull(foundUsuario);
         assertEquals(1, foundUsuario.getRoles().size());
         assertTrue(foundUsuario.getRoles().stream()
-            .anyMatch(r -> "USER".equals(r.getNombre())));
+            .anyMatch(r -> rol.getNombre().equals(r.getNombre())));
     }
 
     @Test
     void testDocumentoEntityMapping() {
         // Crear usuario primero
         Usuario usuario = new Usuario();
-        usuario.setUsername("docuser");
-        usuario.setEmail("doc@example.com");
+        usuario.setUsername("docuser" + System.currentTimeMillis());
+        usuario.setEmail("doc" + System.currentTimeMillis() + "@example.com");
         usuario.setPassword("password123");
         entityManager.persist(usuario);
 
@@ -132,15 +134,15 @@ class JpaEntityTest {
         assertEquals("test.pdf", foundDoc.getNombreOriginal());
         assertEquals("application/pdf", foundDoc.getTipoMime());
         assertNotNull(foundDoc.getCreadoPor());
-        assertEquals("docuser", foundDoc.getCreadoPor().getUsername());
+        assertEquals(usuario.getUsername(), foundDoc.getCreadoPor().getUsername());
     }
 
     @Test
     void testWorkflowEntityMapping() {
-        // Crear workflow
+        // Crear workflow con nombre único
         Workflow workflow = new Workflow();
-        workflow.setNombre("Aprobación Documentos");
-        workflow.setDescripcion("Workflow para aprobación de documentos");
+        workflow.setNombre("Test Workflow " + System.currentTimeMillis());
+        workflow.setDescripcion("Workflow para test de entidades");
 
         // Persistir workflow
         entityManager.persist(workflow);
@@ -152,22 +154,23 @@ class JpaEntityTest {
         
         Workflow foundWorkflow = entityManager.find(Workflow.class, workflow.getId());
         assertNotNull(foundWorkflow);
-        assertEquals("Aprobación Documentos", foundWorkflow.getNombre());
-        assertEquals("Workflow para aprobación de documentos", foundWorkflow.getDescripcion());
+        assertEquals(workflow.getNombre(), foundWorkflow.getNombre());
+        assertEquals(workflow.getDescripcion(), foundWorkflow.getDescripcion());
     }
 
     @Test
     void testWorkflowEtapaEntityMapping() {
-        // Crear workflow primero
+        // Crear workflow primero con nombre único
         Workflow workflow = new Workflow();
-        workflow.setNombre("Test Workflow");
+        workflow.setNombre("Test Workflow " + System.currentTimeMillis());
+        workflow.setDescripcion("Workflow para test de etapas");
         entityManager.persist(workflow);
 
         // Crear etapa del workflow
         WorkflowEtapa etapa = new WorkflowEtapa();
         etapa.setWorkflow(workflow);
         etapa.setOrden(1);
-        etapa.setDescripcion("Primera etapa");
+        etapa.setDescripcion("Primera etapa de test");
 
         // Persistir etapa
         entityManager.persist(etapa);
@@ -180,8 +183,8 @@ class JpaEntityTest {
         WorkflowEtapa foundEtapa = entityManager.find(WorkflowEtapa.class, etapa.getId());
         assertNotNull(foundEtapa);
         assertEquals(1, foundEtapa.getOrden());
-        assertEquals("Primera etapa", foundEtapa.getDescripcion());
+        assertEquals("Primera etapa de test", foundEtapa.getDescripcion());
         assertNotNull(foundEtapa.getWorkflow());
-        assertEquals("Test Workflow", foundEtapa.getWorkflow().getNombre());
+        assertEquals(workflow.getNombre(), foundEtapa.getWorkflow().getNombre());
     }
 }

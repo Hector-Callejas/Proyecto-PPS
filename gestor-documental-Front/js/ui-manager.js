@@ -17,6 +17,7 @@ class UIManager {
                     ✅ ${message}
                 </div>
             `;
+            container.style.display = 'block';
             this.autoHide(container, 5000);
         } else {
             this.showToast(message, 'success');
@@ -36,6 +37,7 @@ class UIManager {
                     ❌ ${message}
                 </div>
             `;
+            container.style.display = 'block';
             this.autoHide(container, 8000);
         } else {
             this.showToast(message, 'error');
@@ -75,6 +77,9 @@ class UIManager {
                     ${message}
                 </div>
             `;
+            container.style.display = 'block';
+        } else {
+            console.warn('Contenedor de mensajes no encontrado:', containerId);
         }
     }
 
@@ -86,6 +91,7 @@ class UIManager {
         const container = document.getElementById(containerId);
         if (container) {
             container.innerHTML = '';
+            container.style.display = 'none';
         }
     }
 
@@ -98,6 +104,7 @@ class UIManager {
         setTimeout(() => {
             if (container) {
                 container.innerHTML = '';
+                container.style.display = 'none';
             }
         }, delay);
     }

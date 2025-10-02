@@ -40,6 +40,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                 .requestMatchers("/api/documentos/test", "/api/documentos/health", "/api/documentos/*/test").permitAll()
+                .requestMatchers("/api/comentarios/**").permitAll() // TEMPORAL: Permitir endpoints de comentarios
+                .requestMatchers("/api/usuarios/**").authenticated() // Endpoints de usuarios requieren autenticación (se validará por permisos en el controlador)
+                .requestMatchers("/api/auth/permissions", "/api/auth/check-permission/**").authenticated() // Endpoints de autorización requieren autenticación
+                .requestMatchers("/api/roles/**").authenticated() // Endpoints de roles requieren autenticación (se validará por permisos en el controlador)
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )

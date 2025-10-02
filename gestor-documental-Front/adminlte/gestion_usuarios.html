@@ -21,9 +21,16 @@
         .user-actions {
             white-space: nowrap;
         }
+        
         .modal-header {
             background-color: #007bff;
             color: white;
+        }
+        
+        /* Ocultar botones de debug visualmente */
+        .btn[onclick="resetPageState()"],
+        .btn[onclick="ensureScrollEnabled(); alert('Scroll habilitado')"] {
+            display: none !important;
         }
     </style>
 </head>
@@ -106,8 +113,14 @@
                             <h1 class="m-0">Gestión de Usuarios</h1>
                         </div>
                         <div class="col-sm-6">
-                            <button class="btn btn-primary float-right" data-toggle="modal" data-target="#userModal" onclick="openUserModal()">
+                            <button class="btn btn-primary float-right" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openUserModal()">
                                 <i class="fas fa-plus"></i> Nuevo Usuario
+                            </button>
+                            <button class="btn btn-warning float-right mr-2" onclick="resetPageState()" title="Resetear página si queda bloqueada">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                            <button class="btn btn-info float-right mr-2" onclick="ensureScrollEnabled(); alert('Scroll habilitado')" title="Forzar habilitación del scroll">
+                                <i class="fas fa-arrows-alt-v"></i> Scroll
                             </button>
                         </div>
                     </div>
@@ -116,6 +129,14 @@
 
             <section class="content">
                 <div class="container-fluid">
+                    <!-- Contenedor de mensajes -->
+                    <div id="messageContainer" class="row mb-3" style="display: none;">
+                        <div class="col-12">
+                            <!-- Los mensajes se mostrarán aquí -->
+                        </div>
+                    </div>
+                    
+                    
                     <!-- Filtros -->
                     <div class="row">
                         <div class="col-12">
@@ -220,9 +241,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="userModalTitle">Nuevo Usuario</h4>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="userForm">
@@ -277,7 +296,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" onclick="saveUser()">Guardar</button>
                 </div>
             </div>
@@ -290,33 +309,105 @@
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/ui-manager.js"></script>
+    <script src="../js/authorization-manager.js"></script>
     <script src="../js/user-manager.js"></script>
 
     <script>
-        // Verificar autenticación al cargar
-        document.addEventListener('DOMContentLoaded', function() {
+        // Verificar autenticación y permisos al cargar
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('DOM cargado');
+            console.log('jQuery disponible:', typeof $ !== 'undefined');
+            console.log('Bootstrap disponible:', typeof $.fn.modal !== 'undefined');
+            
             if (!AuthManager.isAuthenticated()) {
                 window.location.href = '../index.html';
                 return;
             }
+
+            // Inicializar sistema de autorización
+            const authInitialized = await AuthorizationManager.initialize();
+            if (!authInitialized) {
+                UIManager.showError('Error al cargar permisos del usuario', 'messageContainer');
+                return;
+            }
+            
+            // Verificar si el usuario puede gestionar usuarios
+            if (!AuthorizationManager.canManageUsers()) {
+                UIManager.showError('No tienes permisos para gestionar usuarios. Se requiere el permiso: MANAGE_USERS', 'messageContainer');
+                
+                // Ocultar botones de gestión
+                const newUserBtn = document.querySelector('button[onclick="openUserModal()"]');
+                if (newUserBtn) newUserBtn.style.display = 'none';
+                
+                const updateBtn = document.querySelector('button[onclick="loadUsers()"]');
+                if (updateBtn) updateBtn.style.display = 'none';
+                
+                return;
+            }
+            
+            // Asegurar que el scroll funcione correctamente
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            
             loadUsers();
             loadRoles();
+            
+            // Agregar evento de clic al botón nuevo usuario
+            const nuevoUsuarioBtn = document.querySelector('button[onclick="openUserModal()"]');
+            if (nuevoUsuarioBtn) {
+                console.log('Botón nuevo usuario encontrado');
+                nuevoUsuarioBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Click en botón nuevo usuario detectado');
+                    openUserModal();
+                });
+            } else {
+                console.error('Botón nuevo usuario no encontrado');
+            }
+            
+            // Event listener para detectar cuando el modal se cierra
+            const userModal = document.getElementById('userModal');
+            if (userModal) {
+                userModal.addEventListener('hidden.bs.modal', function() {
+                    console.log('Modal de usuario cerrado correctamente');
+                    // Asegurar que el scroll funcione después de cerrar modal
+                    ensureScrollEnabled();
+                    // Limpiar estado después de cerrar modal
+                    setTimeout(() => {
+                        resetPageState();
+                    }, 500);
+                });
+                
+                userModal.addEventListener('hide.bs.modal', function() {
+                    console.log('Modal de usuario cerrándose...');
+                    ensureScrollEnabled();
+                });
+            }
         });
 
         // Cargar usuarios
         async function loadUsers() {
             try {
-                UIManager.showLoading('Cargando usuarios...', 'usersTable');
+                console.log('Iniciando carga de usuarios...');
+                UIManager.showLoading('Cargando usuarios...', 'messageContainer');
                 
                 const result = await UserManager.getUsers();
+                console.log('Resultado de carga de usuarios:', result);
                 
                 if (result.success) {
+                    console.log('Usuarios cargados exitosamente:', result.users);
                     renderUsers(result.users);
+                    UIManager.clearMessages('messageContainer');
                 } else {
-                    UIManager.showError('Error al cargar usuarios: ' + result.error, 'usersTable');
+                    console.error('Error al cargar usuarios:', result.error);
+                    UIManager.showError('Error al cargar usuarios: ' + result.error, 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al cargar usuarios: ' + error.message, 'usersTable');
+                console.error('Error en loadUsers:', error);
+                UIManager.showError('Error al cargar usuarios: ' + error.message, 'messageContainer');
+            } finally {
+                // Asegurar que el scroll funcione
+                ensureScrollEnabled();
             }
         }
 
@@ -359,7 +450,7 @@
             }
             
             return roles.map(role => 
-                `<span class="badge badge-info role-badge">${role.nombre}</span>`
+                `<span class="badge badge-info role-badge">${role}</span>`
             ).join('');
         }
 
@@ -373,12 +464,12 @@
                     const filterRoleSelect = document.getElementById('filterRole');
                     
                     rolesSelect.innerHTML = result.roles.map(role => 
-                        `<option value="${role.id}">${role.nombre}</option>`
+                        `<option value="${role.nombre}">${role.nombre}</option>`
                     ).join('');
                     
                     filterRoleSelect.innerHTML = '<option value="">Todos los roles</option>' + 
                         result.roles.map(role => 
-                            `<option value="${role.id}">${role.nombre}</option>`
+                            `<option value="${role.nombre}">${role.nombre}</option>`
                         ).join('');
                 }
             } catch (error) {
@@ -388,18 +479,115 @@
 
         // Abrir modal para nuevo usuario
         function openUserModal() {
-            document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
-            document.getElementById('userForm').reset();
-            document.getElementById('userId').value = '';
+            console.log('openUserModal() llamado');
+            try {
+                // Limpiar formulario
+                document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+                document.getElementById('userForm').reset();
+                document.getElementById('userId').value = '';
+                console.log('Elementos del modal configurados');
+                
+                // Limpiar cualquier backdrop o modal abierto anteriormente
+                const existingBackdrop = document.querySelector('.modal-backdrop');
+                if (existingBackdrop) {
+                    existingBackdrop.remove();
+                }
+                document.body.classList.remove('modal-open');
+                
+                // Mostrar modal usando Bootstrap 5
+                const modal = new bootstrap.Modal(document.getElementById('userModal'));
+                modal.show();
+                console.log('Modal mostrado correctamente');
+                
+            } catch (error) {
+                console.error('Error en openUserModal:', error);
+                // Fallback: mostrar alerta y recargar página
+                alert('Error al abrir modal: ' + error.message + '\nRecarga la página para continuar.');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+        }
+        
+        // Función alternativa sin jQuery
+        function openUserModalSimple() {
+            console.log('openUserModalSimple() llamado');
+            alert('Funcionalidad de nuevo usuario - Modal en desarrollo');
+        }
+
+        // Función para asegurar que el scroll funcione
+        function ensureScrollEnabled() {
+            document.body.style.overflow = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            document.body.classList.remove('modal-open');
+        }
+
+        // Función para limpiar estado de la página
+        function resetPageState() {
+            console.log('Reseteando estado de la página...');
+            
+            // Asegurar que el scroll esté habilitado
+            ensureScrollEnabled();
+            
+            // Limpiar todos los modales abiertos
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.style.display = 'none';
+            });
+            
+            // Limpiar backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Limpiar mensajes de UI
+            UIManager.clearMessages('messageContainer');
+            
+            console.log('Estado de la página reseteado');
+        }
+
+        // Función de emergencia para recargar página
+        function emergencyReload() {
+            console.log('Recarga de emergencia iniciada...');
+            resetPageState();
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        // Función para mostrar loading en botón específico
+        function showButtonLoading(button, originalText = 'Guardar') {
+            if (button) {
+                button.disabled = true;
+                button.dataset.originalText = button.textContent;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+            }
+        }
+
+        function hideButtonLoading(button) {
+            if (button && button.dataset.originalText) {
+                button.disabled = false;
+                button.textContent = button.dataset.originalText;
+            }
         }
 
         // Editar usuario
         async function editUser(userId) {
             try {
+                console.log('=== INICIO editUser ===');
+                console.log('Obteniendo usuario con ID:', userId);
+                
+                // Primero cargar los roles disponibles
+                console.log('Cargando roles disponibles...');
+                await loadRoles();
+                
                 const result = await UserManager.getUser(userId);
+                console.log('Resultado de getUser:', result);
                 
                 if (result.success) {
                     const user = result.user;
+                    console.log('Usuario obtenido:', user);
+                    console.log('Roles del usuario:', user.roles);
+                    
                     document.getElementById('userModalTitle').textContent = 'Editar Usuario';
                     document.getElementById('userId').value = user.id;
                     document.getElementById('username').value = user.username;
@@ -408,11 +596,21 @@
                     
                     // Seleccionar roles
                     const rolesSelect = document.getElementById('roles');
+                    console.log('Opciones de roles disponibles:', Array.from(rolesSelect.options).map(o => o.text));
+                    
                     Array.from(rolesSelect.options).forEach(option => {
-                        option.selected = user.roles && user.roles.some(role => role.id == option.value);
+                        const isSelected = user.roles && user.roles.some(role => role === option.text);
+                        option.selected = isSelected;
+                        if (isSelected) {
+                            console.log('Rol seleccionado:', option.text);
+                        }
                     });
                     
-                    $('#userModal').modal('show');
+                    console.log('Roles seleccionados:', Array.from(rolesSelect.selectedOptions).map(o => o.text));
+                    console.log('=== FIN editUser ===');
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('userModal'));
+                modal.show();
                 } else {
                     UIManager.showError('Error al cargar usuario: ' + result.error);
                 }
@@ -440,32 +638,83 @@
                 email: document.getElementById('email').value,
                 password: password,
                 activo: document.getElementById('activo').value === 'true',
-                roles: Array.from(document.getElementById('roles').selectedOptions).map(option => ({
-                    id: parseInt(option.value)
-                }))
+                roles: Array.from(document.getElementById('roles').selectedOptions).map(option => option.text)
             };
             
+            console.log('Datos del usuario a enviar:', userData);
+            console.log('Roles seleccionados:', userData.roles);
+            
             try {
-                UIManager.showLoading('Guardando usuario...');
+                console.log('Iniciando guardado de usuario...');
+                
+                // Mostrar loading en el botón de guardar
+                const saveButton = document.querySelector('button[onclick="saveUser()"]');
+                showButtonLoading(saveButton, 'Guardar');
+                
+                UIManager.showLoading('Guardando usuario...', 'messageContainer');
                 
                 let result;
                 if (userId) {
+                    console.log('Actualizando usuario existente...');
                     result = await UserManager.updateUser(userId, userData);
                 } else {
+                    console.log('Creando nuevo usuario...');
                     result = await UserManager.createUser(userData);
                 }
                 
+                console.log('Resultado del guardado:', result);
+                
                 if (result.success) {
-                    UIManager.showSuccess('Usuario guardado exitosamente');
-                    $('#userModal').modal('hide');
-                    loadUsers();
+                    console.log('Usuario guardado exitosamente, cerrando modal...');
+                    UIManager.showSuccess('Usuario guardado exitosamente', 'messageContainer');
+                    
+                    // Cerrar modal de forma más robusta
+                    try {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                        if (modal) {
+                            modal.hide();
+                            console.log('Modal cerrado correctamente');
+                        } else {
+                            // Si no hay instancia, crear una nueva y cerrarla
+                            const newModal = new bootstrap.Modal(document.getElementById('userModal'));
+                            newModal.hide();
+                            console.log('Modal cerrado con nueva instancia');
+                        }
+                    } catch (modalError) {
+                        console.error('Error cerrando modal:', modalError);
+                        // Forzar cierre del modal
+                        document.getElementById('userModal').style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) backdrop.remove();
+                    }
+                    
+                    // Recargar usuarios después de un pequeño delay
+                    setTimeout(() => {
+                        console.log('Recargando lista de usuarios...');
+                        loadUsers();
+                    }, 500);
+                    
                 } else {
-                    UIManager.showError('Error al guardar usuario: ' + result.error);
+                    console.error('Error al guardar usuario:', result.error);
+                    UIManager.showError('Error al guardar usuario: ' + result.error, 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al guardar usuario: ' + error.message);
+                console.error('Error en saveUser:', error);
+                UIManager.showError('Error al guardar usuario: ' + error.message, 'messageContainer');
             } finally {
-                UIManager.clearMessages();
+                console.log('Limpiando mensajes...');
+                
+                // Asegurar que el scroll funcione
+                ensureScrollEnabled();
+                
+                // Restaurar botón de guardar
+                const saveButton = document.querySelector('button[onclick="saveUser()"]');
+                hideButtonLoading(saveButton);
+                
+                setTimeout(() => {
+                    UIManager.clearMessages('messageContainer');
+                }, 1000);
             }
         }
 

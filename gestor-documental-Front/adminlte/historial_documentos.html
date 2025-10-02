@@ -91,6 +91,13 @@
 
             <section class="content">
                 <div class="container-fluid">
+                    <!-- Contenedor de mensajes -->
+                    <div id="messageContainer" class="row mb-3" style="display: none;">
+                        <div class="col-12">
+                            <!-- Los mensajes se mostrarán aquí -->
+                        </div>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-12">
                             <div class="card">
@@ -175,9 +182,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Vista de Documento</h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <iframe id="visorPdf" class="w-100" style="height: 600px; border: 1px solid #ccc;"></iframe>
@@ -192,17 +197,27 @@
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
     <script src="../js/ui-manager.js"></script>
     <script src="../js/auth.js"></script>
-    <script src="../js/document-manager.js"></script>
+    <script src="../js/authorization-manager.js"></script>
+    <script src="../js/document-manager.js?v=1.2"></script>
 
     <script>
         let allDocuments = [];
         let filteredDocuments = [];
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Verificar que todos los managers estén disponibles
+            console.log('DocumentManager disponible:', typeof DocumentManager);
+            console.log('DocumentManager.downloadDocument disponible:', typeof DocumentManager?.downloadDocument);
+            console.log('AuthManager disponible:', typeof AuthManager);
+            console.log('AuthorizationManager disponible:', typeof AuthorizationManager);
+            
             // Verificar autenticación
             if (!AuthManager.requireAuth()) {
                 return;
             }
+
+            // Inicializar sistema de autorización
+            await AuthorizationManager.initialize();
 
             // Cargar documentos al iniciar
             loadDocuments();
@@ -304,6 +319,12 @@
         }
 
         async function verDocumento(documentId) {
+            // Verificar permisos
+            if (!AuthorizationManager.canViewDocuments()) {
+                UIManager.showError('No tienes permisos para ver documentos', 'messageContainer');
+                return;
+            }
+
             try {
                 UIManager.showLoading('Cargando documento...', 'messageContainer');
                 
@@ -335,11 +356,29 @@
             } catch (error) {
                 UIManager.showError("Error al cargar el documento: " + error.message, 'messageContainer');
             } finally {
-                UIManager.clearMessages();
+                UIManager.clearMessages('messageContainer');
             }
         }
 
         async function descargarDocumento(documentId) {
+            // Verificar que DocumentManager esté disponible
+            if (typeof DocumentManager === 'undefined') {
+                UIManager.showError('DocumentManager no está disponible', 'messageContainer');
+                return;
+            }
+            
+            if (typeof DocumentManager.downloadDocument !== 'function') {
+                UIManager.showError('Función downloadDocument no está disponible. Recarga la página (Ctrl+F5)', 'messageContainer');
+                console.error('DocumentManager.downloadDocument no es una función:', typeof DocumentManager.downloadDocument);
+                return;
+            }
+            
+            // Verificar permisos
+            if (!AuthorizationManager.canDownloadDocuments()) {
+                UIManager.showError('No tienes permisos para descargar documentos', 'messageContainer');
+                return;
+            }
+
             try {
                 UIManager.showLoading('Preparando descarga...', 'messageContainer');
                 const result = await DocumentManager.downloadDocument(documentId);
@@ -350,11 +389,18 @@
                     UIManager.showError(result.error || 'Error al descargar documento', 'messageContainer');
                 }
             } catch (error) {
-                UIManager.showError('Error al descargar documento', 'messageContainer');
+                console.error('Error en descarga de documento:', error);
+                UIManager.showError('Error al descargar documento: ' + error.message, 'messageContainer');
             }
         }
 
         async function eliminarDocumento(documentId) {
+            // Verificar permisos
+            if (!AuthorizationManager.canDeleteDocuments()) {
+                UIManager.showError('No tienes permisos para eliminar documentos', 'messageContainer');
+                return;
+            }
+
             UIManager.showConfirm(
                 "¿Estás seguro de eliminar este documento?",
                 async () => {

@@ -37,7 +37,21 @@ public class ComentarioController {
         try {
             // Obtener el ID del usuario desde el token JWT
             String token = jwtUtil.extractTokenFromRequest(httpRequest);
+            
+            // Validar que el token existe
+            if (token == null || token.trim().isEmpty()) {
+                return ResponseEntity.status(401)
+                    .body(Map.of("error", "Token de autorización requerido"));
+            }
+            
             Long usuarioId = jwtUtil.getUserIdFromToken(token);
+            
+            // Validar que el usuario existe
+            Optional<Usuario> usuario = usuarioRepository.findById(usuarioId);
+            if (!usuario.isPresent()) {
+                return ResponseEntity.status(404)
+                    .body(Map.of("error", "Usuario no encontrado"));
+            }
             
             DocumentoComentarioDTO comentario = documentoComentarioService.agregarComentario(
                 request.getDocumentoId(), 

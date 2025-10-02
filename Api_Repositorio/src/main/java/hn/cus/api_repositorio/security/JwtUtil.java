@@ -14,6 +14,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -69,5 +70,24 @@ public class JwtUtil {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    // Extraer token del request HTTP
+    public String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+    // Obtener ID de usuario desde el token (asumiendo que el subject es el ID)
+    public Long getUserIdFromToken(String token) {
+        try {
+            String userIdString = extraerUsername(token);
+            return Long.parseLong(userIdString);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Token no contiene un ID de usuario válido");
+        }
     }
 }
